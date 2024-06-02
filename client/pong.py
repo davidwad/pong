@@ -1,10 +1,35 @@
 import math
 import pygame
-import random
-from dataclasses import dataclass
 import pygame.freetype as freetype
+import random
+import socket
+from dataclasses import dataclass
 
 import config as conf
+
+
+class Network:
+    def __init__(self, address: str, port: int):
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server = address
+        self.port = port
+        self.addr = (self.server, self.port)
+        self.id = self.connect()
+        print(self.id)
+
+    def connect(self):
+        try:
+            self.client.connect(self.addr)
+            return self.client.recv(2048).decode()
+        except:
+            pass
+
+    def send(self, data):
+        try:
+            self.client.send(str.encode(data))
+            return self.client.recv(2048).decode()
+        except socket.error as e:
+            print(e)
 
 
 @dataclass
@@ -113,11 +138,16 @@ def generate_start_velocity(max_angle: int, speed: float) -> tuple[int]:
 
 
 def main():
+    ADDRESS = 'localhost'
+    PORT = 8000
+
     pygame.init()
     window = pygame.display.set_mode((conf.WINDOW_WIDTH, conf.WINDOW_HEIGHT))
     pygame.display.set_caption(conf.CAPTION)
     game_font = freetype.SysFont('arial', size=24)
     run = True
+
+    net = Network(ADDRESS, PORT)
 
     edges = Edges(bottom=conf.WINDOW_HEIGHT, top=0, left=0, right=conf.WINDOW_WIDTH)
 
@@ -132,6 +162,8 @@ def main():
                 color=conf.BALL_COLOR)
 
     clock = pygame.time.Clock()
+
+    net.connect()
 
     while run:
         clock.tick(conf.FRAMERATE)
@@ -153,7 +185,7 @@ def main():
             (vel_x, vel_y) = generate_start_velocity(conf.BALL_MAX_START_ANGLE, conf.BALL_SPEED)
             ball = Ball(conf.WINDOW_WIDTH/2, conf.WINDOW_HEIGHT/2, conf.BALL_RADIUS, vel_x, vel_y, edges,
                         color=conf.BALL_COLOR)
-
+        net.send("sup")
         redrawWindow(window, ball, left_paddle, right_paddle, game_font, conf.WINDOW_COLOR)
 
 

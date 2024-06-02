@@ -22,6 +22,7 @@ class Paddle:
         self.width = width
         self.height = height
         self.speed = speed
+        self.edges = edges
         self.color = color
         self.score = 0
 
@@ -31,10 +32,10 @@ class Paddle:
     def move(self):
         keys = pygame.key.get_pressed()
 
-        if keys[pygame.K_UP]:
+        if keys[pygame.K_UP] and self.y >= self.edges.top:
             self.y -= self.speed
 
-        if keys[pygame.K_DOWN]:
+        if keys[pygame.K_DOWN] and self.y <= self.edges.bottom - self.height:
             self.y += self.speed
 
     def get_rect(self):
@@ -67,10 +68,10 @@ class Ball:
             self.vel_x = -self.vel_x
 
     def inside_floor(self) -> bool:
-        return self.y <= self.edges.bottom
+        return self.y >= self.edges.bottom
 
     def inside_roof(self) -> bool:
-        return self.y >= self.edges.top
+        return self.y <= self.edges.top
 
     def inside_left_wall(self) -> bool:
         return self.x <= self.edges.left
@@ -84,7 +85,8 @@ class Ball:
         return False
 
 
-def redrawWindow(window: pygame.Surface, ball: Ball, paddle_left: Paddle, paddle_right: Paddle, font: freetype.Font, window_color: tuple[int]):
+def redrawWindow(window: pygame.Surface, ball: Ball, paddle_left: Paddle, paddle_right: Paddle, font: freetype.Font,
+                 window_color: tuple[int]):
     window.fill(window_color)
     paddle_left.draw(window)
     paddle_right.draw(window)
@@ -117,16 +119,17 @@ def main():
     game_font = freetype.SysFont('arial', size=24)
     run = True
 
+    edges = Edges(bottom=conf.WINDOW_HEIGHT, top=0, left=0, right=conf.WINDOW_WIDTH)
+
     left_paddle = Paddle(conf.PADDLE_START_X, conf.PADDLE_START_Y, conf.PADDLE_WIDTH, conf.PADDLE_HEIGHT,
-                         conf.PADDLE_SPEED, conf.PADDLE_COLOR)
+                         conf.PADDLE_SPEED, edges, conf.PADDLE_COLOR)
 
     right_paddle = Paddle(conf.WINDOW_WIDTH - conf.PADDLE_START_X, conf.PADDLE_START_Y, conf.PADDLE_WIDTH,
-                          conf.PADDLE_HEIGHT, conf.PADDLE_SPEED, conf.PADDLE_COLOR)
-
-    edges = Edges(bottom=0, top=conf.WINDOW_HEIGHT, left=0, right=conf.WINDOW_WIDTH)
+                          conf.PADDLE_HEIGHT, conf.PADDLE_SPEED, edges, conf.PADDLE_COLOR)
 
     (vel_x, vel_y) = generate_start_velocity(conf.BALL_MAX_START_ANGLE, conf.BALL_SPEED)
-    ball = Ball(conf.WINDOW_WIDTH/2, conf.WINDOW_HEIGHT/2, conf.BALL_RADIUS, vel_x, vel_y, edges, color=conf.BALL_COLOR)
+    ball = Ball(conf.WINDOW_WIDTH / 2, conf.WINDOW_HEIGHT / 2, conf.BALL_RADIUS, vel_x, vel_y, edges,
+                color=conf.BALL_COLOR)
 
     clock = pygame.time.Clock()
 
@@ -142,13 +145,17 @@ def main():
         ball.move(left_paddle, right_paddle)
         if ball.inside_left_wall():
             right_paddle.score += 1
+            (vel_x, vel_y) = generate_start_velocity(conf.BALL_MAX_START_ANGLE, conf.BALL_SPEED)
+            ball = Ball(conf.WINDOW_WIDTH/2, conf.WINDOW_HEIGHT/2, conf.BALL_RADIUS, vel_x, vel_y, edges,
+                        color=conf.BALL_COLOR)
         elif ball.inside_right_wall():
             left_paddle.score += 1
+            (vel_x, vel_y) = generate_start_velocity(conf.BALL_MAX_START_ANGLE, conf.BALL_SPEED)
+            ball = Ball(conf.WINDOW_WIDTH/2, conf.WINDOW_HEIGHT/2, conf.BALL_RADIUS, vel_x, vel_y, edges,
+                        color=conf.BALL_COLOR)
 
         redrawWindow(window, ball, left_paddle, right_paddle, game_font, conf.WINDOW_COLOR)
 
 
 if __name__ == '__main__':
     main()
-
-# TODO: Prevent paddles from going off the game window. Reset ball when a player scores a point.
